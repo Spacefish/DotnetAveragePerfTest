@@ -11,7 +11,7 @@ var summary = BenchmarkRunner.Run<Average>();
 [SimpleJob]
 public class Average
 {
-    private int[] data;
+    private int[] data = null!;
 
     [Params(5, 10, 100, 1000, 10000)]
     public int N;
