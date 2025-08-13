@@ -12,7 +12,7 @@ public class Average
 {
     private int[] data;
 
-    [Params(1000, 10000)]
+    [Params(5, 10, 100, 1000, 10000)]
     public int N;
 
     [GlobalSetup]
