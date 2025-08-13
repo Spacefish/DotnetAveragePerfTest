@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Numerics;
 using System.Runtime.Intrinsics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
@@ -10,7 +11,7 @@ var summary = BenchmarkRunner.Run<Average>();
 [SimpleJob]
 public class Average
 {
-    private int[] data;
+    private int[] data = null!;
 
     [Params(5, 10, 100, 1000, 10000)]
     public int N;
@@ -87,13 +88,28 @@ public class Average
         long sum = 0;
         int i = 0;
 
-        if (span.Length >= Vector256<int>.Count)
+        // Try Vector512 first (AVX-512) for best performance on capable hardware
+        if (Vector512.IsHardwareAccelerated && span.Length >= Vector512<int>.Count)
         {
-            Vector256<long> sums = default;
+            Vector512<long> sums = Vector512<long>.Zero;
+            do
+            {
+                Vector512<int> vector = Vector512.Create<int>(span.Slice(i, Vector512<int>.Count));
+                (var low, var high) = Vector512.Widen(vector);
+                sums += low;
+                sums += high;
+                i += Vector512<int>.Count;
+            }
+            while (i <= span.Length - Vector512<int>.Count);
+            sum += Vector512.Sum(sums);
+        }
+        // Fallback to Vector256 (AVX2) if available
+        else if (Vector256.IsHardwareAccelerated && span.Length >= Vector256<int>.Count)
+        {
+            Vector256<long> sums = Vector256<long>.Zero;
             do
             {
                 Vector256<int> vector = Vector256.Create<int>(span.Slice(i, Vector256<int>.Count));
-
                 (var low, var high) = Vector256.Widen(vector);
                 sums += low;
                 sums += high;
@@ -102,7 +118,23 @@ public class Average
             while (i <= span.Length - Vector256<int>.Count);
             sum += Vector256.Sum(sums);
         }
+        // Fallback to Vector128 (SSE) if available
+        else if (Vector128.IsHardwareAccelerated && span.Length >= Vector128<int>.Count)
+        {
+            Vector128<long> sums = Vector128<long>.Zero;
+            do
+            {
+                Vector128<int> vector = Vector128.Create<int>(span.Slice(i, Vector128<int>.Count));
+                (var low, var high) = Vector128.Widen(vector);
+                sums += low;
+                sums += high;
+                i += Vector128<int>.Count;
+            }
+            while (i <= span.Length - Vector128<int>.Count);
+            sum += Vector128.Sum(sums);
+        }
 
+        // Process remaining elements with scalar loop
         for (; (uint)i < (uint)span.Length; i++)
         {
             sum += span[i];
