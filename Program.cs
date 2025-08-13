@@ -13,7 +13,7 @@ public class Average
 {
     private int[] data = null!;
 
-    [Params(5, 10, 100, 1000, 10000)]
+    [Params(10, 1000, 10000)]
     public int N;
 
     [GlobalSetup]
@@ -75,15 +75,15 @@ public class Average
     public double MyAverage()
     {
         var span = data.AsSpan();
-
+        
         // Int32 is special-cased separately from the rest of the types as it can be vectorized:
-        // with at most Int32.MaxValue values, and with each being at most Int32.MaxValue, we can't
-        // overflow a long accumulator, and order of operations doesn't matter.
+    // with at most Int32.MaxValue values, and with each being at most Int32.MaxValue, we can't
+    // overflow a long accumulator, and order of operations doesn't matter.
 
-        if (span.IsEmpty)
-        {
-            throw new Exception("Cannot compute average of an empty collection.");
-        }
+    if (span.IsEmpty)
+    {
+        throw new Exception("Cannot compute average of an empty collection.");
+    }
 
         long sum = 0;
         int i = 0;
