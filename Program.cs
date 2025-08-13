@@ -133,20 +133,6 @@ public class Average
             while (i <= span.Length - Vector128<int>.Count);
             sum += Vector128.Sum(sums);
         }
-        // Fallback to generic Vector<T> (adapts to hardware capabilities)
-        else if (Vector.IsHardwareAccelerated && span.Length >= Vector<int>.Count)
-        {
-            Vector<long> sums = Vector<long>.Zero;
-            do
-            {
-                Vector.Widen(new Vector<int>(span.Slice(i)), out Vector<long> low, out Vector<long> high);
-                sums += low;
-                sums += high;
-                i += Vector<int>.Count;
-            }
-            while (i <= span.Length - Vector<int>.Count);
-            sum += Vector.Sum(sums);
-        }
 
         // Process remaining elements with scalar loop
         for (; (uint)i < (uint)span.Length; i++)
